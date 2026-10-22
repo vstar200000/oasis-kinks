@@ -9,7 +9,7 @@ interface CategoryShape {
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
   extended?: boolean;
-  items: { name: string; extended?: boolean }[];
+  items: ({ name: string; extended?: boolean } & AnswerTypeFlags)[];
 }
 
 export interface ImportedResults {
@@ -33,10 +33,28 @@ const ALL_ROLES: Role[] = [
   "subject",
 ];
 
-function getRoles(category: CategoryShape): Role[] {
-  if (category["actor-subject"]) return ["actor", "subject"];
-  if (category["giving-receiving"]) return ["giving", "receiving"];
-  return category["self-partner"] ? ["self", "partner"] : ["self"];
+interface AnswerTypeFlags {
+  "self-partner"?: boolean;
+  "giving-receiving"?: boolean;
+  "actor-subject"?: boolean;
+}
+
+const ANSWER_TYPE_FLAGS = [
+  "actor-subject",
+  "giving-receiving",
+  "self-partner",
+] as const;
+
+// Any answer type flag on the item overrides the category's answer type
+export function getRoles(
+  category: AnswerTypeFlags,
+  item?: AnswerTypeFlags,
+): Role[] {
+  const source =
+    item && ANSWER_TYPE_FLAGS.some((flag) => item[flag]) ? item : category;
+  if (source["actor-subject"]) return ["actor", "subject"];
+  if (source["giving-receiving"]) return ["giving", "receiving"];
+  return source["self-partner"] ? ["self", "partner"] : ["self"];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -68,6 +86,7 @@ export function parseResults(
 
   const includeExtended = data.includeExtended === true;
   const baseKeys = new Map<string, string>();
+  const rolesByName = new Map<string, Role[]>();
   const categoryByName = new Map<string, CategoryShape>();
   let baseIndex = 0;
   for (const category of categories) {
@@ -76,6 +95,10 @@ export function parseResults(
       const key = `base:${baseIndex++}`;
       if (includeExtended || !(category.extended || item.extended)) {
         visibleKeys.push([`${category.category}\n${item.name}`, key]);
+        rolesByName.set(
+          `${category.category}\n${item.name}`,
+          getRoles(category, item),
+        );
       }
     }
     // A category made up only of extended items is itself extended
@@ -103,14 +126,16 @@ export function parseResults(
       result.skipped += rawCategory.items.length;
       continue;
     }
-    const roles = getRoles(category);
+    const categoryRoles = getRoles(category);
 
     for (const rawItem of rawCategory.items) {
       if (!isRecord(rawItem) || typeof rawItem.name !== "string") {
         result.skipped += 1;
         continue;
       }
-      let key = baseKeys.get(`${category.category}\n${rawItem.name}`);
+      const itemName = `${category.category}\n${rawItem.name}`;
+      let key = baseKeys.get(itemName);
+      const roles = rolesByName.get(itemName) ?? categoryRoles;
       if (rawItem.custom === true) {
         const id = result.nextCustomId++;
         result.customItems.push({

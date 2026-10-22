@@ -111,7 +111,7 @@ Each item has a `name`, its optional `description` and `image`, and a `rating` o
 - [x] Split "Primal" into "Hunter" and "Prey".
 - [x] Consider "Dynamics" category.
 - [x] Introduce migration system. Press a button with V3 loaded, and it upgrades the save to V4.
-- [ ] Implement "type_override", for items that fit into a category, but need to have a different answer type.
+- [x] Implement "type_override", for items that fit into a category, but need to have a different answer type.
 - [ ] Certain items should be excluded from extended list because they are replaced by more specific other items. (e.g. "Anal Play" should be replaced with multiple different items in extended mode.)
 - [ ] Set the following to a split-answer type: Ass Play, Breeding, Bukakke, CNC, cumflation, edging, egg impregnation(ovipositor), electro stim, foot play, free use, glory hole, Harem, Gangbang, humiliation, hypnotizing, Milking Breasts/Cock, Pet Play, Shibari, Sleepplay, stocks, vore, water sports, wax play, Big/little, dom/Brat, Dom/Sub, Hunter(Primal)/Prey, Navel Play
 - [x] Rewrite Caregiver to be parent/child rather than injured/nurse.

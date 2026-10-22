@@ -66,7 +66,11 @@ export function renderResultsCanvas(
   }[] = [];
   for (const item of items) {
     const last = groups[groups.length - 1];
-    if (last && last.category === item.category) {
+    if (
+      last &&
+      last.category === item.category &&
+      last.roles.join() === item.roles.join()
+    ) {
       last.items.push(item);
     } else {
       groups.push({

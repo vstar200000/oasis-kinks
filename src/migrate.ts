@@ -1,11 +1,17 @@
 import type { ImportedResults } from "./importResults.ts";
+import { getRoles } from "./importResults.ts";
 
 interface CategoryShape {
   category: string;
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
-  items: { name: string }[];
+  items: {
+    name: string;
+    "self-partner"?: boolean;
+    "giving-receiving"?: boolean;
+    "actor-subject"?: boolean;
+  }[];
 }
 
 type Answers = ImportedResults["answers"][string];
@@ -15,12 +21,6 @@ export interface MigrationResult {
   carried: number;
   added: number;
   dropped: { category: string; name: string }[];
-}
-
-function getRoles(category: CategoryShape): string[] {
-  if (category["actor-subject"]) return ["actor", "subject"];
-  if (category["giving-receiving"]) return ["giving", "receiving"];
-  return category["self-partner"] ? ["self", "partner"] : ["self"];
 }
 
 const nameKey = (category: string, name: string) => `${category}\n${name}`;
@@ -35,11 +35,10 @@ export function migrateToNewList(
   const newItems = new Map<string, { key: string; roles: string[] }>();
   let newIndex = 0;
   for (const category of newCategories) {
-    const roles = getRoles(category);
     for (const item of category.items) {
       newItems.set(nameKey(category.category, item.name), {
         key: `base:${newIndex++}`,
-        roles,
+        roles: getRoles(category, item),
       });
     }
   }

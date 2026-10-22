@@ -10,6 +10,7 @@ import itemsV4Data from "./data/items-v4.json";
 import itemsData from "./data/items.json";
 import { downloadCanvasPng, renderResultsCanvas } from "./exportImage.ts";
 import {
+  getRoles,
   parseResults,
   type ImportedResults,
   type ListVersion,
@@ -39,6 +40,9 @@ export interface ItemData {
   description?: string;
   image?: string;
   extended?: boolean;
+  "self-partner"?: boolean;
+  "giving-receiving"?: boolean;
+  "actor-subject"?: boolean;
 }
 
 const categoriesByVersion: Record<ListVersion, Category[]> = {
@@ -52,20 +56,6 @@ type AnswerLevel = (typeof ratingOptions)[number]["value"];
 type Role = "self" | "partner" | "giving" | "receiving" | "actor" | "subject";
 
 type ItemAnswers = Record<Role, AnswerLevel | null>;
-
-function getRoles(
-  selfPartner = false,
-  givingReceiving = false,
-  actorSubject = false,
-): Role[] {
-  if (actorSubject) {
-    return ["actor", "subject"];
-  }
-  if (givingReceiving) {
-    return ["giving", "receiving"];
-  }
-  return selfPartner ? ["self", "partner"] : ["self"];
-}
 
 interface CustomItem {
   id: number;
@@ -91,24 +81,22 @@ function buildItems(
   categories: Category[],
 ): AppItem[] {
   let baseIndex = 0;
-  return categories.flatMap(
-    ({
+  return categories.flatMap((categoryData) => {
+    const {
       category,
-      "self-partner": selfPartner = false,
-      "giving-receiving": givingReceiving = false,
-      "actor-subject": actorSubject = false,
       extended: categoryExtended = false,
       description: categoryDescription,
       items: categoryItems,
-    }) => {
-      const roles = getRoles(selfPartner, givingReceiving, actorSubject);
+    } = categoryData;
+    {
+      const roles = getRoles(categoryData);
       // Keys count every item so they stay stable whether or not extended items are shown
       const base: AppItem[] = categoryItems
         .map((item) => ({
           ...item,
           category,
           categoryDescription,
-          roles,
+          roles: getRoles(categoryData, item),
           key: `base:${baseIndex++}`,
         }))
         .filter(
@@ -133,8 +121,8 @@ function buildItems(
           custom: true,
         }));
       return [...base, ...custom];
-    },
-  );
+    }
+  });
 }
 
 const emptyAnswers: ItemAnswers = {
@@ -419,6 +407,9 @@ function Checklist({
                   ...(item.description && { description: item.description }),
                   ...(item.image && { image: item.image }),
                   ...(item.custom && { custom: true }),
+                  ...(item["self-partner"] && { "self-partner": true }),
+                  ...(item["giving-receiving"] && { "giving-receiving": true }),
+                  ...(item["actor-subject"] && { "actor-subject": true }),
                   rating:
                     item.roles.length > 1
                       ? Object.fromEntries(

@@ -41,6 +41,7 @@ export interface ItemData {
   description?: string;
   image?: string;
   extended?: boolean;
+  "omit-extended"?: boolean;
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
@@ -110,7 +111,9 @@ function buildItems(
           key: `base:${baseIndex++}`,
         }))
         .filter(
-          (item) => includeExtended || !(categoryExtended || item.extended),
+          (item) =>
+            (includeExtended || !(categoryExtended || item.extended)) &&
+            !(includeExtended && item["omit-extended"]),
         );
       // A flagged category, or one made up only of extended items, is extended
       if (
@@ -903,7 +906,7 @@ function App() {
           );
           setInitial(results);
           setListVersion(version);
-          setIncludeExtended(version === "v2" && results.includeExtended);
+          setIncludeExtended(results.includeExtended);
           setListName(results.listName);
         }}
         onStart={(name, version, extended) => {

@@ -18,7 +18,11 @@ interface CategoryShape {
   "actor-subject"?: boolean;
   "center-circle"?: boolean;
   extended?: boolean;
-  items: ({ name: string; extended?: boolean } & AnswerTypeFlags)[];
+  items: ({
+    name: string;
+    extended?: boolean;
+    "omit-extended"?: boolean;
+  } & AnswerTypeFlags)[];
 }
 
 export interface ImportedResults {
@@ -107,7 +111,10 @@ export function parseResults(
     const visibleKeys: [string, string][] = [];
     for (const item of category.items) {
       const key = `base:${baseIndex++}`;
-      if (includeExtended || !(category.extended || item.extended)) {
+      if (
+        (includeExtended || !(category.extended || item.extended)) &&
+        !(includeExtended && item["omit-extended"])
+      ) {
         visibleKeys.push([`${category.category}\n${item.name}`, key]);
         rolesByName.set(
           `${category.category}\n${item.name}`,

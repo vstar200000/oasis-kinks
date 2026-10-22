@@ -6,6 +6,7 @@
 			{
 				"name": "Ass Play",
 				"actor-subject": true,
+				"omit-extended": true,
 				"description": "Intimate activities involving the anus."
 			},
 			{
@@ -231,6 +232,26 @@
 				"name": "Wax Play",
 				"actor-subject": true,
 				"description": "Involving hot wax in a sexual context, often for sensation play."
+			}
+		]
+	},
+	{
+		"category": "Anal Play",
+		"description": "Acts involving the anal region, often for sexual stimulation.",
+		"actor-subject": true,
+		"extended": true,
+		"items": [
+			{
+				"name": "Analingus",
+				"description": "Orally stimulating a partner's anus for sexual pleasure."
+			},
+			{
+				"name": "Anal Intercourse",
+				"description": "Penetration of the anus by a penis or other object for sexual pleasure."
+			},
+			{
+				"name": "Anal Toys",
+				"description": "Using sex toys designed for anal play, such as plugs or beads."
 			}
 		]
 	},

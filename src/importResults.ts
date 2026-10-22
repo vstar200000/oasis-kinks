@@ -62,13 +62,15 @@ const ANSWER_TYPE_FLAGS = [
   "self-partner",
 ] as const;
 
-// Any answer type flag on the item overrides the category's answer type
+// Any explicitly set answer type flag on the item overrides the category's answer type
 export function getRoles(
   category: AnswerTypeFlags,
   item?: AnswerTypeFlags,
 ): Role[] {
   const source =
-    item && ANSWER_TYPE_FLAGS.some((flag) => item[flag]) ? item : category;
+    item && ANSWER_TYPE_FLAGS.some((flag) => item[flag] !== undefined)
+      ? item
+      : category;
   if (source["center-circle"]) return ["center", "circle"];
   if (source["actor-subject"]) return ["actor", "subject"];
   if (source["giving-receiving"]) return ["giving", "receiving"];

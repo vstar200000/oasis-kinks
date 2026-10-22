@@ -14,14 +14,17 @@
 			},
 			{
 				"name": "Breeding",
+				"actor-subject": true,
 				"description": "Engaging in acts with the intent to conceive."
 			},
 			{
 				"name": "Bukakke",
-				"description": "A group activity involving many participants ejaculating on one person."
+				"center-circle": true,
+				"description": "A group activity involving many participants ejaculating on one person, the center of the scene."
 			},
 			{
 				"name": "Consensual Non-consent",
+				"actor-subject": true,
 				"description": "Role-playing scenarios where consent is given in advance but appears to be absent during the act."
 			},
 			{
@@ -34,6 +37,7 @@
 			},
 			{
 				"name": "Cumflation",
+				"actor-subject": true,
 				"description": "The act of inflating a body part with semen."
 			},
 			{
@@ -47,14 +51,17 @@
 			},
 			{
 				"name": "Edging",
+				"actor-subject": true,
 				"description": "Bringing someone close to orgasm and then stopping to prolong sexual arousal."
 			},
 			{
 				"name": "Egg Impregnation",
-				"description": "Inserting an egg into a body cavity as a sexual act."
+				"actor-subject": true,
+				"description": "Inserting an egg into a body cavity as a sexual act. Also known as ovipositor play."
 			},
 			{
 				"name": "Electro Stim",
+				"actor-subject": true,
 				"description": "Using electrical stimulation for sexual pleasure."
 			},
 			{
@@ -68,10 +75,12 @@
 			},
 			{
 				"name": "Foot Play",
+				"actor-subject": true,
 				"description": "Sexual activities that involve the feet."
 			},
 			{
 				"name": "Free Use",
+				"actor-subject": true,
 				"description": "A scenario where one participant is available for sexual activity at any time."
 			},
 			{
@@ -81,6 +90,7 @@
 			},
 			{
 				"name": "Gangbang",
+				"center-circle": true,
 				"description": "A sexual activity involving one person being the focus of multiple partners."
 			},
 			{
@@ -90,22 +100,27 @@
 			},
 			{
 				"name": "Glory Hole",
+				"actor-subject": true,
 				"description": "A scenario where two participants engage in sexual activity with anonymity."
 			},
 			{
 				"name": "Harem",
+				"center-circle": true,
 				"description": "A scenario where one person (typically masculine) is involved with multiple partners (typically feminine) simultaneously."
 			},
 			{
 				"name": "Humiliation",
+				"actor-subject": true,
 				"description": "Deriving sexual pleasure from being degraded or embarrassing a partner."
 			},
 			{
 				"name": "Hypnotizing",
+				"actor-subject": true,
 				"description": "Using hypnosis to influence a partner's thoughts or actions for sexual purposes, typically playing with power dynamics."
 			},
 			{
 				"name": "Ice Play",
+				"actor-subject": true,
 				"description": "Using ice or cold objects for sexual stimulation.",
 				"extended": true
 			},
@@ -115,11 +130,13 @@
 			},
 			{
 				"name": "Kabeshiri",
+				"actor-subject": true,
 				"description": "A specific type of sexual play involving being bound in or against walls or surfaces.",
 				"extended": true
 			},
 			{
 				"name": "Knife Play",
+				"actor-subject": true,
 				"description": "Play involving objects associated with danger, often used in a controlled way to create a sense of risk or danger while remaining safe.",
 				"extended": true
 			},
@@ -129,44 +146,54 @@
 			},
 			{
 				"name": "Milking Breasts",
+				"actor-subject": true,
 				"description": "Stimulating the breasts to produce milk, often for sexual pleasure."
 			},
 			{
 				"name": "Milking Cock",
+				"actor-subject": true,
 				"description": "Stimulating the penis to produce semen, often for sexual pleasure."
 			},
 			{
 				"name": "Navel Play",
+				"actor-subject": true,
 				"extended": true,
 				"description": "Engaging in sexual activities that involve the navel or belly button."
 			},
 			{
 				"name": "Pet Play",
+				"actor-subject": true,
 				"description": "Role-playing as pets in a sexual context."
 			},
 			{
 				"name": "Sensory Play",
+				"actor-subject": true,
 				"description": "Engaging the senses in a sexual context, often involving touch, taste, smell, sight, and sound."
 			},
 			{
 				"name": "Shibari",
+				"actor-subject": true,
 				"description": "A style of rope bondage that emphasizes aesthetics and intricate patterns."
 			},
 			{
 				"name": "Sleep Play",
+				"actor-subject": true,
 				"description": "Engaging in sexual activities while one or more participants are asleep or pretending to be asleep."
 			},
 			{
 				"name": "Stocks",
+				"actor-subject": true,
 				"description": "Using stocks or similar devices to restrain a participant, often for humiliation or control."
 			},
 			{
 				"name": "Strip Tease",
+				"actor-subject": true,
 				"extended": true,
 				"description": "Performing a seductive dance that involves gradually removing clothing."
 			},
 			{
-				"name": "Teasing",
+				"name": "General Teasing",
+				"actor-subject": true,
 				"extended": true,
 				"description": "Provoking sexual arousal through playful or suggestive actions without immediate gratification."
 			},
@@ -187,18 +214,22 @@
 			},
 			{
 				"name": "Vore",
+				"actor-subject": true,
 				"description": "A fantasy category of acts involving themes of being eaten, swallowing someone whole, or absorbing the partner somehow."
 			},
 			{
 				"name": "Voyeurism",
+				"actor-subject": true,
 				"description": "Deriving sexual pleasure from observing others who are naked or engaged in sexual activity."
 			},
 			{
 				"name": "Watersports",
+				"actor-subject": true,
 				"description": "Engaging in sexual activities that involve urine."
 			},
 			{
 				"name": "Wax Play",
+				"actor-subject": true,
 				"description": "Involving hot wax in a sexual context, often for sensation play."
 			}
 		]

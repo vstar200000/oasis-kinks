@@ -61,21 +61,15 @@ export function renderResultsCanvas(
 
   const groups: {
     category: string;
-    roles: string[];
     items: ExportItem[];
   }[] = [];
   for (const item of items) {
     const last = groups[groups.length - 1];
-    if (
-      last &&
-      last.category === item.category &&
-      last.roles.join() === item.roles.join()
-    ) {
+    if (last && last.category === item.category) {
       last.items.push(item);
     } else {
       groups.push({
         category: item.category,
-        roles: item.roles,
         items: [item],
       });
     }
@@ -92,21 +86,31 @@ export function renderResultsCanvas(
   const LEGEND_ROW_H = 24;
   const LEGEND_GAP = 20;
   const COLUMN_GAP = 48;
-  const GROUP_HEAD_H = 56;
+  const GROUP_HEAD_H = 40;
   const GROUP_GAP = 16;
+  const ROLE_LABEL_FONT = `600 13px ${FONT}`;
+  const ROLE_LABEL_GAP = 12;
   const title = listName || "Oasis Kinks results";
   const titleWidth = textWidth(`700 30px ${FONT}`, title);
+  const answerWidthOf = (item: ExportItem) => {
+    if (item.roles.length < 2) return COL_W;
+    const roleLabel = item.roles.map(titleCase).join("/");
+    return (
+      2 * COL_W +
+      textWidth(ROLE_LABEL_FONT, roleLabel) +
+      2 * ROLE_LABEL_GAP
+    );
+  };
 
   const blocks = groups.map((group) => ({
     group,
     height: GROUP_HEAD_H + group.items.length * ROW_H + GROUP_GAP,
     width: Math.max(
       textWidth(`700 20px ${FONT}`, group.category),
-      Math.max(
-        ...group.items.map((item) => textWidth(`15px ${FONT}`, item.name)),
-      ) +
-        28 +
-        group.roles.length * COL_W,
+      ...group.items.map(
+        (item) =>
+          textWidth(`15px ${FONT}`, item.name) + 28 + answerWidthOf(item),
+      ),
     ),
   }));
   const columnWidth = Math.ceil(Math.max(...blocks.map((b) => b.width)));
@@ -241,23 +245,11 @@ export function renderResultsCanvas(
     let y = headerH;
 
     for (const { group } of column) {
-      const roles = group.roles;
-      const circleX = (index: number) =>
-        rightEdge - COL_W * (roles.length - index) + COL_W / 2;
-
       ctx.fillStyle = "#7c234e";
       ctx.font = `700 20px ${FONT}`;
       ctx.textAlign = "left";
       ctx.fillText(group.category, left, y + 16);
 
-      if (roles.length > 1) {
-        ctx.fillStyle = "#6b6775";
-        ctx.font = `600 13px ${FONT}`;
-        ctx.textAlign = "center";
-        roles.forEach((role, index) => {
-          ctx.fillText(titleCase(role), circleX(index), y + 40);
-        });
-      }
       ctx.strokeStyle = "#e3e1e8";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -272,9 +264,22 @@ export function renderResultsCanvas(
         ctx.font = `15px ${FONT}`;
         ctx.textAlign = "left";
         ctx.fillText(item.name, left, cy);
-        item.ratings.forEach((rating, index) => {
-          drawIcon(ctx, circleX(index), cy, optionOf(rating));
-        });
+        if (item.roles.length < 2) {
+          drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[0]));
+        } else {
+          const roleLabel = item.roles.map(titleCase).join("/");
+          const labelWidth =
+            textWidth(ROLE_LABEL_FONT, roleLabel) + 2 * ROLE_LABEL_GAP;
+          const firstRatingX =
+            rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
+          const labelX = rightEdge - COL_W - labelWidth / 2;
+          ctx.fillStyle = "#6b6775";
+          ctx.font = ROLE_LABEL_FONT;
+          ctx.textAlign = "center";
+          drawIcon(ctx, firstRatingX, cy, optionOf(item.ratings[0]));
+          ctx.fillText(roleLabel, labelX, cy);
+          drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[1]));
+        }
         y += ROW_H;
       }
       y += GROUP_GAP;

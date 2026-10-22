@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
-import Item from "./components/item.tsx";
 import DragRating from "./components/DragRating.tsx";
+import Item from "./components/item.tsx";
 import LandingPage from "./components/LandingPage.tsx";
 import NavMenu from "./components/navMenu.tsx";
 import RatingIcon from "./components/RatingIcon.tsx";
 import itemsV3Data from "./data/items-v3.json";
+import itemsV4Data from "./data/items-v4.json";
 import itemsData from "./data/items.json";
 import { downloadCanvasPng, renderResultsCanvas } from "./exportImage.ts";
 import {
@@ -42,6 +43,7 @@ export interface ItemData {
 const categoriesByVersion: Record<ListVersion, Category[]> = {
   v2: itemsData,
   v3: itemsV3Data,
+  v4: itemsV4Data,
 };
 
 type AnswerLevel = (typeof ratingOptions)[number]["value"];

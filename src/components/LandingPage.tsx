@@ -21,7 +21,7 @@ function LandingPage({
   onDiscard,
 }: LandingPageProps) {
   const [listName, setListName] = useState("");
-  const [listVersion, setListVersion] = useState<ListVersion>("v3");
+  const [listVersion, setListVersion] = useState<ListVersion>("v4");
   const [includeExtended, setIncludeExtended] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importError, setImportError] = useState("");
@@ -31,7 +31,7 @@ function LandingPage({
     onStart(
       listName.trim(),
       listVersion,
-      listVersion === "v3" && includeExtended,
+      listVersion === "v4" && includeExtended,
     );
   }
 
@@ -100,12 +100,19 @@ function LandingPage({
             className="form-select form-select-lg mb-3"
             id="list-version"
             onChange={(event) =>
-              setListVersion(event.target.value === "v3" ? "v3" : "v2")
+              setListVersion(
+                event.target.value === "v4"
+                  ? "v4"
+                  : event.target.value === "v3"
+                    ? "v3"
+                    : "v2",
+              )
             }
             value={listVersion}
           >
             <option value="v2">V2</option>
             <option value="v3">V3</option>
+            <option value="v4">V4</option>
           </select>
           <label className="form-label" htmlFor="list-name">
             List name <span className="text-secondary">(optional)</span>

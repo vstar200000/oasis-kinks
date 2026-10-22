@@ -22,7 +22,7 @@ export interface ImportedResults {
   skipped: number;
 }
 
-export type ListVersion = "v2" | "v3";
+export type ListVersion = "v2" | "v3" | "v4";
 
 const ALL_ROLES: Role[] = [
   "self",

@@ -60,7 +60,8 @@ export function loadProgress(): ImportedResults | null {
       typeof listName !== "string" ||
       (listVersion !== undefined &&
         listVersion !== "v2" &&
-        listVersion !== "v3") ||
+        listVersion !== "v3" &&
+        listVersion !== "v4") ||
       (includeExtended !== undefined && typeof includeExtended !== "boolean") ||
       typeof nextCustomId !== "number" ||
       !Array.isArray(customItems) ||
@@ -89,7 +90,8 @@ export function loadProgress(): ImportedResults | null {
       }
     }
     return {
-      listVersion: listVersion === "v3" ? "v3" : "v2",
+      listVersion:
+        listVersion === "v3" || listVersion === "v4" ? listVersion : "v2",
       listName,
       includeExtended: includeExtended === true,
       answers: answers as ImportedResults["answers"],

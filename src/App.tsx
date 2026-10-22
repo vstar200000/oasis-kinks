@@ -15,6 +15,7 @@ import {
   type ListVersion,
 } from "./importResults.ts";
 import { ratingOptions } from "./ratings.ts";
+import { migrateToNewList } from "./migrate.ts";
 import {
   clearProgress,
   loadProgress,
@@ -164,6 +165,7 @@ function Checklist({
   includeExtended,
   initial,
   onNewList,
+  onUpgrade,
   onListNameChange,
 }: {
   listName: string;
@@ -172,6 +174,7 @@ function Checklist({
   includeExtended: boolean;
   initial: ImportedResults | null;
   onNewList: () => void;
+  onUpgrade: (results: ImportedResults) => void;
   onListNameChange: (name: string) => void;
 }) {
   const [activeItemIndex, setActiveItemIndex] = useState(0);
@@ -466,6 +469,33 @@ function Checklist({
       );
   }
 
+  function upgradeToV4() {
+    const { results, carried, added, dropped } = migrateToNewList(
+      {
+        listName,
+        listVersion: "v4",
+        includeExtended,
+        answers,
+        customItems,
+        nextCustomId,
+      },
+      categories,
+      itemsV4Data,
+      "v4",
+    );
+    const droppedText = dropped.length
+      ? `\n\nThese ${dropped.length} item(s) have no match in V4 and will be removed:\n` +
+        dropped.map((item) => `• ${item.category}: ${item.name}`).join("\n")
+      : "";
+    if (
+      window.confirm(
+        `Upgrade to V4? ${carried} rated item(s) will carry over and ${added} new item(s) will be added.${droppedText}\n\nYour V3 progress will be replaced. Export it first if you want a backup.`,
+      )
+    ) {
+      onUpgrade(results);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="container py-4 py-md-5">
@@ -535,6 +565,15 @@ function Checklist({
           >
             New list
           </button>
+          {listVersion === "v3" && (
+            <button
+              className="btn btn-dark"
+              onClick={upgradeToV4}
+              type="button"
+            >
+              Upgrade to V4
+            </button>
+          )}
           <div className="btn-group" role="group" aria-label="Export options">
             <button
               className="btn btn-outline-dark export-button"
@@ -826,6 +865,7 @@ function App() {
   );
   const [includeExtended, setIncludeExtended] = useState(false);
   const [saved, setSaved] = useState(loadProgress);
+  const [checklistKey, setChecklistKey] = useState(0);
 
   if (listName === null) {
     return (
@@ -873,12 +913,20 @@ function App() {
 
   return (
     <Checklist
+      key={checklistKey}
       categories={categoriesByVersion[listVersion]}
       includeExtended={includeExtended}
       initial={initial}
       listName={listName}
       listVersion={listVersion}
       onListNameChange={setListName}
+      onUpgrade={(results) => {
+        saveProgress(results);
+        setInitial(results);
+        setListVersion(results.listVersion);
+        setIncludeExtended(false);
+        setChecklistKey((k) => k + 1);
+      }}
       onNewList={() => {
         clearProgress();
         setSaved(null);

@@ -74,7 +74,11 @@
   flex-direction: column;
   background-color: #f2dce7;
   background-image:
-    radial-gradient(ellipse at 75% 15%, rgb(255 255 255 / 55%), transparent 28%),
+    radial-gradient(
+      ellipse at 75% 15%,
+      rgb(255 255 255 / 55%),
+      transparent 28%
+    ),
     linear-gradient(135deg, #f2dce7, #f4e8ef 50%, #e4d9ef);
   background-position: center;
   background-size: cover;
@@ -449,7 +453,6 @@
   .item-card .card-body {
     padding: 1.2rem;
   }
-
 }
 
 .brand-button {

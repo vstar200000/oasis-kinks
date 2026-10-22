@@ -15,8 +15,8 @@ import {
   type ImportedResults,
   type ListVersion,
 } from "./importResults.ts";
-import { ratingOptions } from "./ratings.ts";
 import { migrateToNewList } from "./migrate.ts";
+import { ratingOptions } from "./ratings.ts";
 import {
   clearProgress,
   loadProgress,
@@ -31,6 +31,7 @@ export interface Category {
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
+  "center-circle"?: boolean;
   extended?: boolean;
   items: ItemData[];
 }
@@ -43,6 +44,7 @@ export interface ItemData {
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
+  "center-circle"?: boolean;
 }
 
 const categoriesByVersion: Record<ListVersion, Category[]> = {
@@ -53,7 +55,15 @@ const categoriesByVersion: Record<ListVersion, Category[]> = {
 
 type AnswerLevel = (typeof ratingOptions)[number]["value"];
 
-type Role = "self" | "partner" | "giving" | "receiving" | "actor" | "subject";
+type Role =
+  | "self"
+  | "partner"
+  | "giving"
+  | "receiving"
+  | "actor"
+  | "subject"
+  | "center"
+  | "circle";
 
 type ItemAnswers = Record<Role, AnswerLevel | null>;
 
@@ -132,6 +142,8 @@ const emptyAnswers: ItemAnswers = {
   receiving: null,
   actor: null,
   subject: null,
+  center: null,
+  circle: null,
 };
 const SKIP_ANSWER: AnswerLevel = 1;
 
@@ -394,6 +406,7 @@ function Checklist({
             "self-partner": category["self-partner"],
             "giving-receiving": category["giving-receiving"],
             "actor-subject": category["actor-subject"],
+            "center-circle": category["center-circle"],
           };
           return {
             ...categoryDetails,
@@ -410,6 +423,7 @@ function Checklist({
                   ...(item["self-partner"] && { "self-partner": true }),
                   ...(item["giving-receiving"] && { "giving-receiving": true }),
                   ...(item["actor-subject"] && { "actor-subject": true }),
+                  ...(item["center-circle"] && { "center-circle": true }),
                   rating:
                     item.roles.length > 1
                       ? Object.fromEntries(

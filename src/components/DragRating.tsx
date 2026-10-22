@@ -32,7 +32,9 @@ class CardPointerSensor extends PointerSensor {
         !(
           nativeEvent.target instanceof Element &&
           nativeEvent.target.closest(INTERACTIVE)
-        ) && nativeEvent.isPrimary && nativeEvent.button === 0,
+        ) &&
+        nativeEvent.isPrimary &&
+        nativeEvent.button === 0,
     },
   ];
 }
@@ -99,8 +101,7 @@ function ArrowHints() {
     <div aria-hidden="true" className="drag-hints">
       {dragSectors.map(({ value, start }) => {
         const option = ratingOptions.find((o) => o.value === value) as
-          | RatingOption
-          | undefined;
+          RatingOption | undefined;
         if (!option) return null;
         const angle = start + DRAG_SECTOR_SIZE / 2;
         return (

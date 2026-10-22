@@ -1,13 +1,22 @@
 import { ratingOptions } from "./ratings.ts";
 
 type AnswerLevel = (typeof ratingOptions)[number]["value"];
-type Role = "self" | "partner" | "giving" | "receiving" | "actor" | "subject";
+type Role =
+  | "self"
+  | "partner"
+  | "giving"
+  | "receiving"
+  | "actor"
+  | "subject"
+  | "center"
+  | "circle";
 
 interface CategoryShape {
   category: string;
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
+  "center-circle"?: boolean;
   extended?: boolean;
   items: ({ name: string; extended?: boolean } & AnswerTypeFlags)[];
 }
@@ -31,15 +40,19 @@ const ALL_ROLES: Role[] = [
   "receiving",
   "actor",
   "subject",
+  "center",
+  "circle",
 ];
 
 interface AnswerTypeFlags {
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
+  "center-circle"?: boolean;
 }
 
 const ANSWER_TYPE_FLAGS = [
+  "center-circle",
   "actor-subject",
   "giving-receiving",
   "self-partner",
@@ -52,6 +65,7 @@ export function getRoles(
 ): Role[] {
   const source =
     item && ANSWER_TYPE_FLAGS.some((flag) => item[flag]) ? item : category;
+  if (source["center-circle"]) return ["center", "circle"];
   if (source["actor-subject"]) return ["actor", "subject"];
   if (source["giving-receiving"]) return ["giving", "receiving"];
   return source["self-partner"] ? ["self", "partner"] : ["self"];

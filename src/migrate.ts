@@ -6,11 +6,13 @@ interface CategoryShape {
   "self-partner"?: boolean;
   "giving-receiving"?: boolean;
   "actor-subject"?: boolean;
+  "center-circle"?: boolean;
   items: {
     name: string;
     "self-partner"?: boolean;
     "giving-receiving"?: boolean;
     "actor-subject"?: boolean;
+    "center-circle"?: boolean;
   }[];
 }
 

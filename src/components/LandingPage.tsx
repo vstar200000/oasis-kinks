@@ -28,11 +28,7 @@ function LandingPage({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onStart(
-      listName.trim(),
-      listVersion,
-      listVersion === "v4" && includeExtended,
-    );
+    onStart(listName.trim(), listVersion, includeExtended);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -126,20 +122,18 @@ function LandingPage({
             type="text"
             value={listName}
           />
-          {(listVersion === "v2" || listVersion === "v3") && (
-            <div className="form-check mb-3">
-              <input
-                checked={includeExtended}
-                className="form-check-input"
-                id="include-extended"
-                onChange={(event) => setIncludeExtended(event.target.checked)}
-                type="checkbox"
-              />
-              <label className="form-check-label" htmlFor="include-extended">
-                Include extended items
-              </label>
-            </div>
-          )}
+          <div className="form-check mb-3">
+            <input
+              checked={includeExtended}
+              className="form-check-input"
+              id="include-extended"
+              onChange={(event) => setIncludeExtended(event.target.checked)}
+              type="checkbox"
+            />
+            <label className="form-check-label" htmlFor="include-extended">
+              Include extended items
+            </label>
+          </div>
           <button className="btn btn-dark btn-lg w-100" type="submit">
             Start
           </button>

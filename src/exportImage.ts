@@ -92,15 +92,19 @@ export function renderResultsCanvas(
   const ROLE_LABEL_GAP = 12;
   const title = listName || "Oasis Kinks results";
   const titleWidth = textWidth(`700 30px ${FONT}`, title);
-  const answerWidthOf = (item: ExportItem) => {
-    if (item.roles.length < 2) return COL_W;
-    const roleLabel = item.roles.map(titleCase).join("/");
-    return (
-      2 * COL_W +
-      textWidth(ROLE_LABEL_FONT, roleLabel) +
-      2 * ROLE_LABEL_GAP
-    );
-  };
+  // Every two-role answer column uses the widest label so the columns line up
+  const labelWidth =
+    Math.max(
+      0,
+      ...items
+        .filter((item) => item.roles.length >= 2)
+        .map((item) =>
+          textWidth(ROLE_LABEL_FONT, item.roles.map(titleCase).join("/")),
+        ),
+    ) +
+    2 * ROLE_LABEL_GAP;
+  const answerWidthOf = (item: ExportItem) =>
+    item.roles.length < 2 ? COL_W : 2 * COL_W + labelWidth;
 
   const blocks = groups.map((group) => ({
     group,
@@ -268,10 +272,7 @@ export function renderResultsCanvas(
           drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[0]));
         } else {
           const roleLabel = item.roles.map(titleCase).join("/");
-          const labelWidth =
-            textWidth(ROLE_LABEL_FONT, roleLabel) + 2 * ROLE_LABEL_GAP;
-          const firstRatingX =
-            rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
+          const firstRatingX = rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
           const labelX = rightEdge - COL_W - labelWidth / 2;
           ctx.fillStyle = "#6b6775";
           ctx.font = ROLE_LABEL_FONT;

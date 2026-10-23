@@ -89,6 +89,7 @@ export function migrateToNewList(
       ...current,
       listVersion: newVersion,
       includeExtended: false,
+      superlist: false,
       answers,
       customItems,
       skipped: 0,

@@ -81,6 +81,7 @@ interface AppItem extends ItemData {
   roles: Role[];
   custom?: boolean;
   rawName?: string;
+  regular?: boolean;
 }
 
 const UNTITLED_NAME = "Untitled item";
@@ -90,6 +91,7 @@ function buildItems(
   customItems: CustomItem[],
   includeExtended: boolean,
   categories: Category[],
+  superlist = false,
 ): AppItem[] {
   let baseIndex = 0;
   return categories.flatMap((categoryData) => {
@@ -109,11 +111,12 @@ function buildItems(
           categoryDescription,
           roles: getRoles(categoryData, item),
           key: `base:${baseIndex++}`,
+          regular: !(categoryExtended || item.extended),
         }))
         .filter(
           (item) =>
             (includeExtended || !(categoryExtended || item.extended)) &&
-            !(includeExtended && item["omit-extended"]),
+            !(includeExtended && !superlist && item["omit-extended"]),
         );
       // A flagged category, or one made up only of extended items, is extended
       if (
@@ -132,6 +135,7 @@ function buildItems(
           roles,
           key: `custom:${customItem.id}`,
           custom: true,
+          regular: true,
         }));
       return [...base, ...custom];
     }
@@ -198,20 +202,22 @@ function Checklist({
       : "",
   );
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [superlist, setSuperlist] = useState(initial?.superlist ?? false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [progressDisplay, setProgressDisplay] = useState(loadProgressDisplay);
 
   const items = useMemo(
-    () => buildItems(customItems, includeExtended, categories),
-    [categories, customItems, includeExtended],
+    () => buildItems(customItems, includeExtended, categories, superlist),
+    [categories, customItems, includeExtended, superlist],
   );
 
   useEffect(() => {
     saveProgress({
       listName,
       includeExtended,
+      superlist,
       listVersion,
       answers,
       customItems,
@@ -221,6 +227,7 @@ function Checklist({
     listName,
     listVersion,
     includeExtended,
+    superlist,
     answers,
     customItems,
     nextCustomId,
@@ -336,9 +343,12 @@ function Checklist({
     setShowComplete(false);
     setJustAddedKey(key);
     setActiveItemIndex(
-      buildItems(updatedCustomItems, includeExtended, categories).findIndex(
-        (item) => item.key === key,
-      ),
+      buildItems(
+        updatedCustomItems,
+        includeExtended,
+        categories,
+        superlist,
+      ).findIndex((item) => item.key === key),
     );
     setExportMessage("");
     setIsNavOpen(false);
@@ -371,26 +381,47 @@ function Checklist({
     setIsNavOpen(false);
   }
 
-  async function exportPng() {
+  async function exportPng(regularOnly = false) {
     const date = new Date().toISOString().slice(0, 10);
     try {
       const canvas = renderResultsCanvas(
-        items.map((item) => ({
-          name: item.name,
-          category: item.category,
-          roles: item.roles,
-          ratings: item.roles.map((role) =>
-            getEffectiveAnswer(getAnswers(item.key)[role]),
-          ),
-        })),
+        items
+          .filter((item) => !regularOnly || item.regular)
+          .map((item) => ({
+            name: item.name,
+            category: item.category,
+            roles: item.roles,
+            ratings: item.roles.map((role) =>
+              getEffectiveAnswer(getAnswers(item.key)[role]),
+            ),
+          })),
         ratingOptions,
         listName,
       );
-      await downloadCanvasPng(canvas, `oasis-kinks-results-${date}.png`);
+      await downloadCanvasPng(
+        canvas,
+        `oasis-kinks-results${regularOnly ? "-regular" : ""}-${date}.png`,
+      );
       setExportMessage("Your PNG results have been downloaded.");
     } catch {
       setExportMessage("Sorry, the PNG could not be created.");
     }
+  }
+
+  function exportRegularPng() {
+    if (!superlist) {
+      const accepted = window.confirm(
+        "To export the regular list, some regular items that are normally hidden in the extended list need to be added so you can answer them. Add them now?",
+      );
+      if (!accepted) return;
+      setSuperlist(true);
+      setShowComplete(false);
+      setExportMessage(
+        "Regular items hidden by the extended list have been added. Answer them, then choose Export regular PNG again.",
+      );
+      return;
+    }
+    return exportPng(true);
   }
 
   function createJSONExportData() {
@@ -398,6 +429,7 @@ function Checklist({
       formatVersion: 3,
       ...(listName && { listName }),
       ...(includeExtended && { includeExtended }),
+      ...(superlist && { superlist }),
       exportedAt: new Date().toISOString(),
       categories: categories
         .filter((category) =>
@@ -483,6 +515,7 @@ function Checklist({
         listName,
         listVersion: "v4",
         includeExtended,
+        superlist,
         answers,
         customItems,
         nextCustomId,
@@ -585,7 +618,7 @@ function Checklist({
           <div className="btn-group" role="group" aria-label="Export options">
             <button
               className="btn btn-outline-dark export-button"
-              onClick={exportPng}
+              onClick={() => exportPng()}
               type="button"
             >
               Export PNG
@@ -604,6 +637,18 @@ function Checklist({
                 className={`dropdown-menu border border-dark dropdown-menu-end${isExportMenuOpen ? " show" : ""}`}
                 id="export-menu"
               >
+                {includeExtended && (
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsExportMenuOpen(false);
+                      exportRegularPng();
+                    }}
+                    type="button"
+                  >
+                    Export regular PNG
+                  </button>
+                )}
                 <button
                   className="dropdown-item"
                   onClick={() => {
@@ -670,7 +715,7 @@ function Checklist({
                     </p>
                     <button
                       className="btn btn-dark"
-                      onClick={exportPng}
+                      onClick={() => exportPng()}
                       type="button"
                     >
                       Export PNG to share

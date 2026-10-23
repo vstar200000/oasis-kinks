@@ -29,6 +29,8 @@ export interface ImportedResults {
   listVersion: ListVersion;
   listName: string;
   includeExtended: boolean;
+  // When set, omit-extended items are shown even in extended lists
+  superlist: boolean;
   answers: Record<string, Record<Role, AnswerLevel | null>>;
   customItems: { id: number; category: string; name: string }[];
   nextCustomId: number;
@@ -105,6 +107,7 @@ export function parseResults(
   }
 
   const includeExtended = data.includeExtended === true;
+  const superlist = includeExtended && data.superlist === true;
   const baseKeys = new Map<string, string>();
   const rolesByName = new Map<string, Role[]>();
   const categoryByName = new Map<string, CategoryShape>();
@@ -115,7 +118,7 @@ export function parseResults(
       const key = `base:${baseIndex++}`;
       if (
         (includeExtended || !(category.extended || item.extended)) &&
-        !(includeExtended && item["omit-extended"])
+        !(includeExtended && !superlist && item["omit-extended"])
       ) {
         visibleKeys.push([`${category.category}\n${item.name}`, key]);
         rolesByName.set(
@@ -135,6 +138,7 @@ export function parseResults(
     listVersion,
     listName: typeof data.listName === "string" ? data.listName : "",
     includeExtended,
+    superlist,
     answers: {},
     customItems: [],
     nextCustomId: 1,

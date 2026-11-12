@@ -452,8 +452,6 @@ function Checklist({
 
                 return {
                   name: item.name,
-                  ...(item.description && { description: item.description }),
-                  ...(item.image && { image: item.image }),
                   ...(item.custom && { custom: true }),
                   ...(item["self-partner"] && { "self-partner": true }),
                   ...(item["giving-receiving"] && { "giving-receiving": true }),

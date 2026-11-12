@@ -17,18 +17,25 @@ const SCALE = 2;
 const PAD = 40;
 const ROW_H = 34;
 const RADIUS = 11;
-const COL_W = 84;
+const COL_W = 34;
 const LEGEND_ROW_H = 24;
 const LEGEND_GAP = 20;
 const COLUMN_GAP = 48;
 const GROUP_HEAD_H = 40;
 const GROUP_GAP = 16;
-const ROLE_LABEL_FONT = `600 13px ${FONT}`;
-const ROLE_LABEL_GAP = 12;
+const SUBGROUP_HEAD_H = 28;
+const SUBGROUP_GAP = 8;
+const SUBGROUP_FONT = `600 14px ${FONT}`;
+
+type AnswerSubgroup = {
+  roles: string[];
+  label: string;
+  items: ExportItem[];
+};
 
 type ItemGroup = {
   category: string;
-  items: ExportItem[];
+  subgroups: AnswerSubgroup[];
 };
 
 type LayoutBlock = {
@@ -93,15 +100,44 @@ function groupItems(items: ExportItem[]): ItemGroup[] {
   for (const item of items) {
     const last = groups[groups.length - 1];
     if (last && last.category === item.category) {
-      last.items.push(item);
+      addItemToGroup(last, item);
     } else {
-      groups.push({
+      const group = {
         category: item.category,
-        items: [item],
-      });
+        subgroups: [],
+      };
+      addItemToGroup(group, item);
+      groups.push(group);
+    }
+  }
+  for (const group of groups) {
+    group.subgroups.sort(
+      (a, b) =>
+        b.roles.length - a.roles.length || a.label.localeCompare(b.label),
+    );
+    for (const subgroup of group.subgroups) {
+      subgroup.items.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+      );
     }
   }
   return groups;
+}
+
+function addItemToGroup(group: ItemGroup, item: ExportItem) {
+  const rolesKey = item.roles.join("/");
+  let subgroup = group.subgroups.find(
+    (candidate) => candidate.roles.join("/") === rolesKey,
+  );
+  if (!subgroup) {
+    subgroup = {
+      roles: item.roles,
+      label: item.roles.map(titleCase).join("/"),
+      items: [],
+    };
+    group.subgroups.push(subgroup);
+  }
+  subgroup.items.push(item);
 }
 
 function createTextMeasurer() {
@@ -118,28 +154,37 @@ function createTextMeasurer() {
 function measureBlocks(
   groups: ItemGroup[],
   textWidth: (font: string, text: string) => number,
-  labelWidth: number,
 ): LayoutBlock[] {
   const answerWidthOf = (item: ExportItem) =>
-    item.roles.length < 2 ? COL_W : 2 * COL_W + labelWidth;
+    item.roles.length < 2 ? COL_W : 2 * COL_W;
 
-  return groups.map((group) => ({
-    group,
-    height: GROUP_HEAD_H + group.items.length * ROW_H + GROUP_GAP,
-    width: Math.max(
-      textWidth(`700 20px ${FONT}`, group.category),
-      ...group.items.map(
+  return groups.map((group) => {
+    const subgroupHeight = group.subgroups.reduce(
+      (height, subgroup) =>
+        height + SUBGROUP_HEAD_H + subgroup.items.length * ROW_H,
+      0,
+    );
+    const subgroupGaps = Math.max(0, group.subgroups.length - 1) * SUBGROUP_GAP;
+    const subgroupWidths = group.subgroups.flatMap((subgroup) => [
+      textWidth(SUBGROUP_FONT, subgroup.label) + 12,
+      ...subgroup.items.map(
         (item) =>
           textWidth(`15px ${FONT}`, item.name) + 28 + answerWidthOf(item),
       ),
-    ),
-  }));
+    ]);
+
+    return {
+      group,
+      height: GROUP_HEAD_H + subgroupHeight + subgroupGaps + GROUP_GAP,
+      width: Math.max(
+        textWidth(`700 20px ${FONT}`, group.category),
+        ...subgroupWidths,
+      ),
+    };
+  });
 }
 
-function layoutLegend(
-  entries: LegendEntry[],
-  maxWidth: number,
-): LegendLayout {
+function layoutLegend(entries: LegendEntry[], maxWidth: number): LegendLayout {
   const rows: LegendEntry[][] = [[]];
   for (const entry of entries) {
     const row = rows[rows.length - 1];
@@ -283,7 +328,6 @@ function drawItem(
   left: number,
   rightEdge: number,
   y: number,
-  labelWidth: number,
   optionOf: (value: number | null) => ExportRating | null,
 ) {
   const cy = y + ROW_H / 2;
@@ -296,14 +340,8 @@ function drawItem(
     return;
   }
 
-  const roleLabel = item.roles.map(titleCase).join("/");
-  const firstRatingX = rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
-  const labelX = rightEdge - COL_W - labelWidth / 2;
-  ctx.fillStyle = "#6b6775";
-  ctx.font = ROLE_LABEL_FONT;
-  ctx.textAlign = "center";
+  const firstRatingX = rightEdge - 1.5 * COL_W;
   drawIcon(ctx, firstRatingX, cy, optionOf(item.ratings[0]));
-  ctx.fillText(roleLabel, labelX, cy);
   drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[1]));
 }
 
@@ -312,7 +350,6 @@ function drawColumns(
   columns: LayoutBlock[][],
   columnWidth: number,
   headerH: number,
-  labelWidth: number,
   optionOf: (value: number | null) => ExportRating | null,
 ) {
   columns.forEach((column, columnIndex) => {
@@ -334,10 +371,23 @@ function drawColumns(
       ctx.stroke();
       y += GROUP_HEAD_H;
 
-      for (const item of group.items) {
-        drawItem(ctx, item, left, rightEdge, y, labelWidth, optionOf);
-        y += ROW_H;
-      }
+      group.subgroups.forEach((subgroup, subgroupIndex) => {
+        ctx.fillStyle = "#6b6775";
+        ctx.font = SUBGROUP_FONT;
+        ctx.textAlign = "center";
+        const labelX =
+          rightEdge - (subgroup.roles.length < 2 ? COL_W / 2 : COL_W);
+        ctx.fillText(subgroup.label, labelX, y + SUBGROUP_HEAD_H / 2);
+        y += SUBGROUP_HEAD_H;
+
+        for (const item of subgroup.items) {
+          drawItem(ctx, item, left, rightEdge, y, optionOf);
+          y += ROW_H;
+        }
+        if (subgroupIndex < group.subgroups.length - 1) {
+          y += SUBGROUP_GAP;
+        }
+      });
       y += GROUP_GAP;
     }
   });
@@ -354,18 +404,7 @@ export function renderResultsCanvas(
   const textWidth = createTextMeasurer();
   const title = listName || "Oasis Kinks results";
   const titleWidth = textWidth(`700 30px ${FONT}`, title);
-  // Every two-role answer column uses the widest label so the columns line up
-  const labelWidth =
-    Math.max(
-      0,
-      ...items
-        .filter((item) => item.roles.length >= 2)
-        .map((item) =>
-          textWidth(ROLE_LABEL_FONT, item.roles.map(titleCase).join("/")),
-        ),
-    ) +
-    2 * ROLE_LABEL_GAP;
-  const blocks = measureBlocks(groups, textWidth, labelWidth);
+  const blocks = measureBlocks(groups, textWidth);
   const columnWidth = Math.ceil(Math.max(...blocks.map((b) => b.width)));
   const legendEntries = ratingOptions.map((option) => ({
     option,
@@ -386,7 +425,7 @@ export function renderResultsCanvas(
   ctx.fillRect(0, 0, WIDTH, height);
   ctx.textBaseline = "middle";
   drawHeader(ctx, title, listName, WIDTH, legend);
-  drawColumns(ctx, columns, columnWidth, headerH, labelWidth, optionOf);
+  drawColumns(ctx, columns, columnWidth, headerH, optionOf);
   return canvas;
 }
 

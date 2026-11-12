@@ -18,6 +18,43 @@ const PAD = 40;
 const ROW_H = 34;
 const RADIUS = 11;
 const COL_W = 84;
+const LEGEND_ROW_H = 24;
+const LEGEND_GAP = 20;
+const COLUMN_GAP = 48;
+const GROUP_HEAD_H = 40;
+const GROUP_GAP = 16;
+const ROLE_LABEL_FONT = `600 13px ${FONT}`;
+const ROLE_LABEL_GAP = 12;
+
+type ItemGroup = {
+  category: string;
+  items: ExportItem[];
+};
+
+type LayoutBlock = {
+  group: ItemGroup;
+  height: number;
+  width: number;
+};
+
+type LegendEntry = {
+  option: ExportRating;
+  width: number;
+};
+
+type LegendLayout = {
+  rows: LegendEntry[][];
+  width: number;
+  height: number;
+};
+
+type ResultsLayout = {
+  columns: LayoutBlock[][];
+  legend: LegendLayout;
+  headerH: number;
+  width: number;
+  height: number;
+};
 
 function titleCase(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -51,18 +88,8 @@ function drawIcon(
   ctx.restore();
 }
 
-export function renderResultsCanvas(
-  items: ExportItem[],
-  ratingOptions: readonly ExportRating[],
-  listName = "",
-) {
-  const optionOf = (value: number | null) =>
-    ratingOptions.find((option) => option.value === value) ?? null;
-
-  const groups: {
-    category: string;
-    items: ExportItem[];
-  }[] = [];
+function groupItems(items: ExportItem[]): ItemGroup[] {
+  const groups: ItemGroup[] = [];
   for (const item of items) {
     const last = groups[groups.length - 1];
     if (last && last.category === item.category) {
@@ -74,39 +101,29 @@ export function renderResultsCanvas(
       });
     }
   }
+  return groups;
+}
 
+function createTextMeasurer() {
   const measure = document.createElement("canvas").getContext("2d");
   if (!measure) {
     throw new Error("Canvas is not supported in this browser.");
   }
-  const textWidth = (font: string, text: string) => {
+  return (font: string, text: string) => {
     measure.font = font;
     return measure.measureText(text).width;
   };
-  const LEGEND_ROW_H = 24;
-  const LEGEND_GAP = 20;
-  const COLUMN_GAP = 48;
-  const GROUP_HEAD_H = 40;
-  const GROUP_GAP = 16;
-  const ROLE_LABEL_FONT = `600 13px ${FONT}`;
-  const ROLE_LABEL_GAP = 12;
-  const title = listName || "Oasis Kinks results";
-  const titleWidth = textWidth(`700 30px ${FONT}`, title);
-  // Every two-role answer column uses the widest label so the columns line up
-  const labelWidth =
-    Math.max(
-      0,
-      ...items
-        .filter((item) => item.roles.length >= 2)
-        .map((item) =>
-          textWidth(ROLE_LABEL_FONT, item.roles.map(titleCase).join("/")),
-        ),
-    ) +
-    2 * ROLE_LABEL_GAP;
+}
+
+function measureBlocks(
+  groups: ItemGroup[],
+  textWidth: (font: string, text: string) => number,
+  labelWidth: number,
+): LayoutBlock[] {
   const answerWidthOf = (item: ExportItem) =>
     item.roles.length < 2 ? COL_W : 2 * COL_W + labelWidth;
 
-  const blocks = groups.map((group) => ({
+  return groups.map((group) => ({
     group,
     height: GROUP_HEAD_H + group.items.length * ROW_H + GROUP_GAP,
     width: Math.max(
@@ -117,107 +134,124 @@ export function renderResultsCanvas(
       ),
     ),
   }));
-  const columnWidth = Math.ceil(Math.max(...blocks.map((b) => b.width)));
+}
 
-  const legendEntries = ratingOptions.map((option) => ({
-    option,
-    width: 24 + textWidth(`14px ${FONT}`, option.label),
-  }));
-  const layoutLegend = (maxWidth: number) => {
-    const rows: (typeof legendEntries)[] = [[]];
-    for (const entry of legendEntries) {
-      const row = rows[rows.length - 1];
-      const rowWidth =
-        row.reduce((sum, e) => sum + e.width + LEGEND_GAP, 0) + entry.width;
-      if (row.length > 0 && rowWidth > maxWidth) {
-        rows.push([entry]);
-      } else {
-        row.push(entry);
-      }
+function layoutLegend(
+  entries: LegendEntry[],
+  maxWidth: number,
+): LegendLayout {
+  const rows: LegendEntry[][] = [[]];
+  for (const entry of entries) {
+    const row = rows[rows.length - 1];
+    const rowWidth =
+      row.reduce((sum, e) => sum + e.width + LEGEND_GAP, 0) + entry.width;
+    if (row.length > 0 && rowWidth > maxWidth) {
+      rows.push([entry]);
+    } else {
+      row.push(entry);
     }
-    const width = Math.max(
-      ...rows.map(
-        (row) =>
-          row.reduce((sum, e) => sum + e.width, 0) +
-          LEGEND_GAP * (row.length - 1),
-      ),
-    );
-    return { rows, width, height: rows.length * LEGEND_ROW_H };
-  };
+  }
+  const width = Math.max(
+    ...rows.map(
+      (row) =>
+        row.reduce((sum, e) => sum + e.width, 0) +
+        LEGEND_GAP * (row.length - 1),
+    ),
+  );
+  return { rows, width, height: rows.length * LEGEND_ROW_H };
+}
 
-  // Split blocks into contiguous columns, minimizing the tallest column
-  const splitColumns = (count: number) => {
-    const total = blocks.reduce((sum, b) => sum + b.height, 0);
-    let low = Math.max(...blocks.map((b) => b.height));
-    let high = total;
-    const fill = (cap: number) => {
-      const cols: (typeof blocks)[] = [[]];
-      let used = 0;
-      for (const block of blocks) {
-        if (used + block.height > cap && cols[cols.length - 1].length > 0) {
-          cols.push([]);
-          used = 0;
-        }
-        cols[cols.length - 1].push(block);
-        used += block.height;
+function splitColumns(blocks: LayoutBlock[], count: number) {
+  // Split blocks into contiguous columns, minimizing the tallest column.
+  const total = blocks.reduce((sum, b) => sum + b.height, 0);
+  let low = Math.max(...blocks.map((b) => b.height));
+  let high = total;
+  const fill = (cap: number) => {
+    const cols: LayoutBlock[][] = [[]];
+    let used = 0;
+    for (const block of blocks) {
+      if (used + block.height > cap && cols[cols.length - 1].length > 0) {
+        cols.push([]);
+        used = 0;
       }
-      return cols;
-    };
-    while (low < high) {
-      const mid = Math.floor((low + high) / 2);
-      if (fill(mid).length <= count) {
-        high = mid;
-      } else {
-        low = mid + 1;
-      }
+      cols[cols.length - 1].push(block);
+      used += block.height;
     }
-    return fill(low);
+    return cols;
   };
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (fill(mid).length <= count) {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+  return fill(low);
+}
 
-  const buildLayout = (count: number) => {
-    const columns = splitColumns(count);
-    const columnsWidth =
-      columns.length * columnWidth + (columns.length - 1) * COLUMN_GAP;
-    const legend = layoutLegend(Math.max(columnsWidth - titleWidth - 40, 260));
-    const contentWidth = Math.ceil(
-      Math.max(columnsWidth, titleWidth + 40 + legend.width),
-    );
-    const headerH = Math.max(80, legend.height) + PAD + 16;
-    const tallest = Math.max(
-      ...columns.map((col) => col.reduce((sum, b) => sum + b.height, 0)),
-    );
-    return {
-      columns,
-      legend,
-      headerH,
-      width: contentWidth + PAD * 2,
-      height: headerH + tallest + PAD - GROUP_GAP,
-    };
+function buildLayout(
+  count: number,
+  blocks: LayoutBlock[],
+  columnWidth: number,
+  titleWidth: number,
+  legendEntries: LegendEntry[],
+): ResultsLayout {
+  const columns = splitColumns(blocks, count);
+  const columnsWidth =
+    columns.length * columnWidth + (columns.length - 1) * COLUMN_GAP;
+  const legend = layoutLegend(
+    legendEntries,
+    Math.max(columnsWidth - titleWidth - 40, 260),
+  );
+  const contentWidth = Math.ceil(
+    Math.max(columnsWidth, titleWidth + 40 + legend.width),
+  );
+  const headerH = Math.max(80, legend.height) + PAD + 16;
+  const tallest = Math.max(
+    ...columns.map((col) => col.reduce((sum, b) => sum + b.height, 0)),
+  );
+  return {
+    columns,
+    legend,
+    headerH,
+    width: contentWidth + PAD * 2,
+    height: headerH + tallest + PAD - GROUP_GAP,
   };
+}
 
-  // Pick the column count whose image is closest to square
-  let layout = buildLayout(1);
+function chooseLayout(
+  blocks: LayoutBlock[],
+  columnWidth: number,
+  titleWidth: number,
+  legendEntries: LegendEntry[],
+): ResultsLayout {
+  // Pick the column count whose image is closest to square.
+  let layout = buildLayout(1, blocks, columnWidth, titleWidth, legendEntries);
   for (let count = 2; count <= blocks.length; count += 1) {
-    const candidate = buildLayout(count);
-    const score = (l: typeof layout) => Math.abs(Math.log(l.width / l.height));
+    const candidate = buildLayout(
+      count,
+      blocks,
+      columnWidth,
+      titleWidth,
+      legendEntries,
+    );
+    const score = (result: ResultsLayout) =>
+      Math.abs(Math.log(result.width / result.height));
     if (score(candidate) < score(layout)) {
       layout = candidate;
     }
   }
-  const { columns, legend, headerH, width: WIDTH, height } = layout;
+  return layout;
+}
 
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH * SCALE;
-  canvas.height = height * SCALE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Canvas is not supported in this browser.");
-  }
-  ctx.scale(SCALE, SCALE);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, WIDTH, height);
-  ctx.textBaseline = "middle";
-
+function drawHeader(
+  ctx: CanvasRenderingContext2D,
+  title: string,
+  listName: string,
+  width: number,
+  legend: LegendLayout,
+) {
   ctx.fillStyle = "#24212b";
   ctx.font = `700 30px ${FONT}`;
   ctx.textAlign = "left";
@@ -228,21 +262,59 @@ export function renderResultsCanvas(
     ctx.fillText("Oasis Kinks results", PAD, PAD + 38);
   }
 
-  // Legend, top right, wrapping
-  const legendX = WIDTH - PAD - legend.width;
+  const legendX = width - PAD - legend.width;
   ctx.font = `14px ${FONT}`;
   legend.rows.forEach((row, rowIndex) => {
     const cy = PAD + LEGEND_ROW_H / 2 + rowIndex * LEGEND_ROW_H;
     let x = legendX;
-    for (const { option, width } of row) {
+    for (const { option, width: entryWidth } of row) {
       drawIcon(ctx, x + 8, cy, option, 18);
       ctx.fillStyle = "#24212b";
       ctx.textAlign = "left";
       ctx.fillText(option.label, x + 24, cy);
-      x += width + LEGEND_GAP;
+      x += entryWidth + LEGEND_GAP;
     }
   });
+}
 
+function drawItem(
+  ctx: CanvasRenderingContext2D,
+  item: ExportItem,
+  left: number,
+  rightEdge: number,
+  y: number,
+  labelWidth: number,
+  optionOf: (value: number | null) => ExportRating | null,
+) {
+  const cy = y + ROW_H / 2;
+  ctx.fillStyle = "#24212b";
+  ctx.font = `15px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText(item.name, left, cy);
+  if (item.roles.length < 2) {
+    drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[0]));
+    return;
+  }
+
+  const roleLabel = item.roles.map(titleCase).join("/");
+  const firstRatingX = rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
+  const labelX = rightEdge - COL_W - labelWidth / 2;
+  ctx.fillStyle = "#6b6775";
+  ctx.font = ROLE_LABEL_FONT;
+  ctx.textAlign = "center";
+  drawIcon(ctx, firstRatingX, cy, optionOf(item.ratings[0]));
+  ctx.fillText(roleLabel, labelX, cy);
+  drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[1]));
+}
+
+function drawColumns(
+  ctx: CanvasRenderingContext2D,
+  columns: LayoutBlock[][],
+  columnWidth: number,
+  headerH: number,
+  labelWidth: number,
+  optionOf: (value: number | null) => ExportRating | null,
+) {
   columns.forEach((column, columnIndex) => {
     const left = PAD + columnIndex * (columnWidth + COLUMN_GAP);
     const rightEdge = left + columnWidth;
@@ -263,29 +335,58 @@ export function renderResultsCanvas(
       y += GROUP_HEAD_H;
 
       for (const item of group.items) {
-        const cy = y + ROW_H / 2;
-        ctx.fillStyle = "#24212b";
-        ctx.font = `15px ${FONT}`;
-        ctx.textAlign = "left";
-        ctx.fillText(item.name, left, cy);
-        if (item.roles.length < 2) {
-          drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[0]));
-        } else {
-          const roleLabel = item.roles.map(titleCase).join("/");
-          const firstRatingX = rightEdge - 2 * COL_W - labelWidth + COL_W / 2;
-          const labelX = rightEdge - COL_W - labelWidth / 2;
-          ctx.fillStyle = "#6b6775";
-          ctx.font = ROLE_LABEL_FONT;
-          ctx.textAlign = "center";
-          drawIcon(ctx, firstRatingX, cy, optionOf(item.ratings[0]));
-          ctx.fillText(roleLabel, labelX, cy);
-          drawIcon(ctx, rightEdge - COL_W / 2, cy, optionOf(item.ratings[1]));
-        }
+        drawItem(ctx, item, left, rightEdge, y, labelWidth, optionOf);
         y += ROW_H;
       }
       y += GROUP_GAP;
     }
   });
+}
+
+export function renderResultsCanvas(
+  items: ExportItem[],
+  ratingOptions: readonly ExportRating[],
+  listName = "",
+) {
+  const optionOf = (value: number | null) =>
+    ratingOptions.find((option) => option.value === value) ?? null;
+  const groups = groupItems(items);
+  const textWidth = createTextMeasurer();
+  const title = listName || "Oasis Kinks results";
+  const titleWidth = textWidth(`700 30px ${FONT}`, title);
+  // Every two-role answer column uses the widest label so the columns line up
+  const labelWidth =
+    Math.max(
+      0,
+      ...items
+        .filter((item) => item.roles.length >= 2)
+        .map((item) =>
+          textWidth(ROLE_LABEL_FONT, item.roles.map(titleCase).join("/")),
+        ),
+    ) +
+    2 * ROLE_LABEL_GAP;
+  const blocks = measureBlocks(groups, textWidth, labelWidth);
+  const columnWidth = Math.ceil(Math.max(...blocks.map((b) => b.width)));
+  const legendEntries = ratingOptions.map((option) => ({
+    option,
+    width: 24 + textWidth(`14px ${FONT}`, option.label),
+  }));
+  const layout = chooseLayout(blocks, columnWidth, titleWidth, legendEntries);
+  const { columns, legend, headerH, width: WIDTH, height } = layout;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH * SCALE;
+  canvas.height = height * SCALE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas is not supported in this browser.");
+  }
+  ctx.scale(SCALE, SCALE);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, WIDTH, height);
+  ctx.textBaseline = "middle";
+  drawHeader(ctx, title, listName, WIDTH, legend);
+  drawColumns(ctx, columns, columnWidth, headerH, labelWidth, optionOf);
   return canvas;
 }
 

@@ -160,28 +160,37 @@ function measureBlocks(
 
   return groups.map((group) => {
     const subgroupHeight = group.subgroups.reduce(
-      (height, subgroup) =>
-        height + SUBGROUP_HEAD_H + subgroup.items.length * ROW_H,
+      (height, subgroup, index) =>
+        height +
+        (index === 0 ? 0 : SUBGROUP_HEAD_H) +
+        subgroup.items.length * ROW_H,
       0,
     );
     const subgroupGaps = Math.max(0, group.subgroups.length - 1) * SUBGROUP_GAP;
-    const subgroupWidths = group.subgroups.flatMap((subgroup) => [
-      textWidth(SUBGROUP_FONT, subgroup.label) + 12,
-      ...subgroup.items.map(
+    const categoryWidth = textWidth(`700 20px ${FONT}`, group.category);
+    const subgroupLabelWidths = group.subgroups.map(
+      (subgroup, index) =>
+        (subgroup.roles.length < 2 ? COL_W / 2 : COL_W) +
+        textWidth(SUBGROUP_FONT, subgroup.label) / 2 +
+        (index === 0 ? categoryWidth + 16 : 0),
+    );
+    const itemWidths = group.subgroups.flatMap((subgroup) =>
+      subgroup.items.map(
         (item) =>
           textWidth(`15px ${FONT}`, item.name) + 28 + answerWidthOf(item),
       ),
-    ]);
+    );
 
     return {
       group,
       height: GROUP_HEAD_H + subgroupHeight + subgroupGaps + GROUP_GAP,
-      width: Math.max(
-        textWidth(`700 20px ${FONT}`, group.category),
-        ...subgroupWidths,
-      ),
+      width: Math.max(categoryWidth, ...subgroupLabelWidths, ...itemWidths),
     };
   });
+}
+
+function subgroupLabelX(rightEdge: number, subgroup: AnswerSubgroup) {
+  return rightEdge - (subgroup.roles.length < 2 ? COL_W / 2 : COL_W);
 }
 
 function layoutLegend(entries: LegendEntry[], maxWidth: number): LegendLayout {
@@ -362,6 +371,17 @@ function drawColumns(
       ctx.font = `700 20px ${FONT}`;
       ctx.textAlign = "left";
       ctx.fillText(group.category, left, y + 16);
+      const firstSubgroup = group.subgroups[0];
+      if (firstSubgroup) {
+        ctx.fillStyle = "#6b6775";
+        ctx.font = SUBGROUP_FONT;
+        ctx.textAlign = "center";
+        ctx.fillText(
+          firstSubgroup.label,
+          subgroupLabelX(rightEdge, firstSubgroup),
+          y + GROUP_HEAD_H / 2,
+        );
+      }
 
       ctx.strokeStyle = "#e3e1e8";
       ctx.lineWidth = 1;
@@ -372,13 +392,17 @@ function drawColumns(
       y += GROUP_HEAD_H;
 
       group.subgroups.forEach((subgroup, subgroupIndex) => {
-        ctx.fillStyle = "#6b6775";
-        ctx.font = SUBGROUP_FONT;
-        ctx.textAlign = "center";
-        const labelX =
-          rightEdge - (subgroup.roles.length < 2 ? COL_W / 2 : COL_W);
-        ctx.fillText(subgroup.label, labelX, y + SUBGROUP_HEAD_H / 2);
-        y += SUBGROUP_HEAD_H;
+        if (subgroupIndex > 0) {
+          ctx.fillStyle = "#6b6775";
+          ctx.font = SUBGROUP_FONT;
+          ctx.textAlign = "center";
+          ctx.fillText(
+            subgroup.label,
+            subgroupLabelX(rightEdge, subgroup),
+            y + SUBGROUP_HEAD_H / 2,
+          );
+          y += SUBGROUP_HEAD_H;
+        }
 
         for (const item of subgroup.items) {
           drawItem(ctx, item, left, rightEdge, y, optionOf);
